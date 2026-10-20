@@ -1,4 +1,5 @@
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
+
 
 @dataclass
 class Student:
@@ -6,41 +7,47 @@ class Student:
     first_name: str
     last_name: str
     course: str
-    year_level: str
+    year_level: int
     email: str
 
     def __post_init__(self):
-        self.student_id = self.student_id.strip()
-        self.first_name = self.first_name.strip()
-        self.last_name = self.last_name.strip()
-        self.course = self.course.strip()
-        self.year_level = self.year_level.strip()
-        self.email = self.email.strip()
+        text_fields = (
+            "student_id",
+            "first_name",
+            "last_name",
+            "course",
+            "email",
+        )
+        for field in text_fields:
+            value = getattr(self, field)
+            if not isinstance(value, str):
+                raise ValueError(f"{field.replace('_', ' ').title()} must be text.")
+            value = value.strip()
+            if not value:
+                raise ValueError("All fields must be provided and cannot be empty.")
+            setattr(self, field, value)
 
-        if not all([self.student_id,
-                     self.first_name, 
-                     self.last_name, 
-                     self.course, 
-                     self.year_level, 
-                     self.email]):
-            raise ValueError("All fields must be provided and cannot be empty.")
-        
-        if isinstance(self.year_level, str) and not self.year_level.isdigit():
-            raise ValueError("Year level must be a number!")
+        if isinstance(self.year_level, str):
+            try:
+                self.year_level = int(self.year_level.strip())
+            except ValueError as error:
+                raise ValueError("Year level must be a number.") from error
+        elif isinstance(self.year_level, bool) or not isinstance(self.year_level, int):
+            raise ValueError("Year level must be a number.")
 
-        if self.year_level not in range (1, 6):
+        if not 1 <= self.year_level <= 5:
             raise ValueError("Year level must be between 1 and 5.")
 
-        if "@" not in self.email or "." not in self.email:
+        if "@" not in self.email or "." not in self.email.rsplit("@", 1)[-1]:
             raise ValueError("Invalid email address format.")
 
-        @property
-        def full_name(self):
-            return f"{self.first_name} {self.last_name}"
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
 
-        def to_dict(self):
-            return asdict(self)
+    def to_dict(self):
+        return asdict(self)
 
-        @classmethod 
-        def from_dict(cls, data):
-            return cls(**data)
+    @classmethod
+    def from_dict(cls, data):
+        return cls(**data)
